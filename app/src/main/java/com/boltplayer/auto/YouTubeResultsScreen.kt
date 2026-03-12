@@ -27,7 +27,9 @@ import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.Page
 import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.linkhandler.SearchQueryHandler
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import java.net.URLEncoder
 
 class YouTubeResultsScreen(
     carContext: CarContext,
@@ -52,12 +54,19 @@ class YouTubeResultsScreen(
         })
     }
 
+    /** Build a SearchQueryHandler that asks YouTube to sort results by upload date. */
+    private fun uploadDateSearchHandler(query: String): SearchQueryHandler {
+        val encoded = URLEncoder.encode(query, "UTF-8")
+        val url = "https://www.youtube.com/results?search_query=$encoded&sp=CAISAjAB"
+        return SearchQueryHandler(url, url, query, emptyList(), "upload_date")
+    }
+
     private fun fetchResults() {
         scope.launch {
             try {
                 val (items, next) = withContext(Dispatchers.IO) {
                     val service = NewPipe.getService(ServiceList.YouTube.serviceId)
-                    val extractor = service.getSearchExtractor(query)
+                    val extractor = service.getSearchExtractor(uploadDateSearchHandler(query))
                     extractor.fetchPage()
                     val page1 = extractor.initialPage
                     val allItems = page1.items.filterIsInstance<StreamInfoItem>().toMutableList()
@@ -92,7 +101,7 @@ class YouTubeResultsScreen(
             try {
                 val (items, next) = withContext(Dispatchers.IO) {
                     val service = NewPipe.getService(ServiceList.YouTube.serviceId)
-                    val extractor = service.getSearchExtractor(query)
+                    val extractor = service.getSearchExtractor(uploadDateSearchHandler(query))
                     extractor.fetchPage()
                     val p = extractor.getPage(page)
                     Pair(p.items.filterIsInstance<StreamInfoItem>(), p.nextPage)

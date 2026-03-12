@@ -9,7 +9,10 @@ class BoltPlayerCarAppService : CarAppService() {
 
     override fun onCreate() {
         super.onCreate()
-        NewPipe.init(NewPipeDownloader.getInstance())
+        val downloader = NewPipeDownloader.getInstance()
+        val cookies = GoogleAuthManager.getCookies(this)
+        if (!cookies.isNullOrBlank()) downloader.cookies = cookies
+        NewPipe.init(downloader)
     }
 
     override fun createHostValidator(): HostValidator {

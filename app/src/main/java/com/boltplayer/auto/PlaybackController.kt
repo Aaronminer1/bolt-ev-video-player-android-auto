@@ -2,6 +2,8 @@ package com.boltplayer.auto
 
 import android.util.Log
 import android.view.Surface
+import kotlinx.coroutines.CompletableDeferred
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 
 /**
@@ -19,15 +21,19 @@ object PlaybackController {
     var player: ExoPlayer? = null
     var title: String = ""
     private var _carSurface: Surface? = null
+    private var surfaceReadySignal: CompletableDeferred<Unit>? = null
 
-    fun setPlayer(exo: ExoPlayer, videoTitle: String) {
+    fun setPlayer(exo: ExoPlayer, videoTitle: String, onSurfaceReady: CompletableDeferred<Unit>? = null) {
         release()
         player = exo
         title = videoTitle
-        // Attach to car surface immediately if one is already available
+        surfaceReadySignal = onSurfaceReady
+        // If a surface is already available, set it immediately and signal ready
         _carSurface?.let {
             Log.d("BoltPlayer", "setPlayer: attaching existing carSurface to new player")
             exo.setVideoSurface(it)
+            surfaceReadySignal?.complete(Unit)
+            surfaceReadySignal = null
         }
     }
 
@@ -36,6 +42,16 @@ object PlaybackController {
         if (surface != null) {
             Log.d("BoltPlayer", "setCarSurface: attaching surface to player=${player != null}")
             player?.setVideoSurface(surface)
+            // Signal that the surface is now ready (unblocks YoutubePlayer before prepare())
+            surfaceReadySignal?.complete(Unit)
+            surfaceReadySignal = null
+            // If player was already prepared (surface arrived late), nudge the video renderer
+            player?.let { p ->
+                if (p.playbackState != Player.STATE_IDLE && p.playbackState != Player.STATE_ENDED) {
+                    Log.d("BoltPlayer", "setCarSurface: nudging video renderer at ${p.currentPosition}ms")
+                    p.seekTo(p.currentPosition)
+                }
+            }
         } else {
             Log.d("BoltPlayer", "setCarSurface: surface destroyed, clearing video surface")
             player?.clearVideoSurface()
@@ -47,5 +63,6 @@ object PlaybackController {
         player?.release()
         player = null
         title = ""
+        surfaceReadySignal = null
     }
 }

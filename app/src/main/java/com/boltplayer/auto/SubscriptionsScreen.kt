@@ -1,7 +1,6 @@
 package com.boltplayer.auto
 
 import android.util.Log
-import android.util.Xml
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.*
@@ -9,8 +8,13 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.*
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.security.MessageDigest
 
 /**
  * Shows the user's YouTube subscriptions by downloading the OPML export from
@@ -46,28 +50,58 @@ class SubscriptionsScreen(carContext: CarContext) : Screen(carContext) {
         scope.launch {
             try {
                 val channelList = withContext(Dispatchers.IO) {
-                    val client = OkHttpClient()
-                    val req = Request.Builder()
-                        .url("https://www.youtube.com/subscription_manager?action_takeout=1")
+                    val sapisid = cookies.split(";")
+                        .firstOrNull { it.trim().startsWith("SAPISID=") }
+                        ?.substringAfter("SAPISID=")?.trim() ?: ""
+                    val timestamp = System.currentTimeMillis() / 1000
+                    val sapisidHash = if (sapisid.isNotBlank()) {
+                        MessageDigest.getInstance("SHA-1")
+                            .digest("$timestamp $sapisid https://www.youtube.com".toByteArray())
+                            .joinToString("") { "%02x".format(it) }
+                    } else ""
+
+                    val client = OkHttpClient.Builder().followRedirects(true).build()
+
+                    fun browseRequest(bodyJson: String): Request = Request.Builder()
+                        .url("https://www.youtube.com/youtubei/v1/browse?prettyPrint=false")
+                        .post(bodyJson.toRequestBody("application/json".toMediaType()))
                         .header("Cookie", cookies)
-                        .header("User-Agent",
-                            "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
-                            "(KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36")
+                        .header("Authorization", "SAPISIDHASH ${timestamp}_${sapisidHash}")
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                        .header("X-YouTube-Client-Name", "1")
+                        .header("X-YouTube-Client-Version", "2.20260312.06.00")
+                        .header("Origin", "https://www.youtube.com")
+                        .header("X-Origin", "https://www.youtube.com")
+                        .header("Referer", "https://www.youtube.com/")
+                        .header("Accept", "application/json")
                         .build()
 
-                    val resp = client.newCall(req).execute()
+                    val initialBody = """{"context":{"client":{"clientName":"WEB","clientVersion":"2.20260312.06.00","hl":"en","gl":"US"}},"browseId":"FEchannels"}"""
+                    val resp = client.newCall(browseRequest(initialBody)).execute()
                     val body = resp.body?.string() ?: ""
+                    Log.d("BoltPlayer", "Subscriptions browse code=${resp.code} len=${body.length}")
+                    if (!resp.isSuccessful || body.length < 50) throw Exception("Server error ${resp.code}")
 
-                    Log.d("BoltPlayer", "OPML response code=${resp.code} length=${body.length}")
+                    val root = JSONObject(body)
+                    val results = mutableListOf<Channel>()
+                    collectChannels(root, results)
 
-                    // If we got redirected to accounts.google.com, session expired
-                    if (resp.code == 302 || body.contains("accounts.google.com") ||
-                        body.contains("\"error\"") || body.length < 100) {
-                        GoogleAuthManager.signOut(carContext)
-                        throw Exception("Session expired — please sign in again")
+                    // Follow continuation tokens to get all subscribed channels
+                    var contToken = extractContinuationToken(root)
+                    var page = 0
+                    while (contToken != null && page < 10) {
+                        val contBody = """{"context":{"client":{"clientName":"WEB","clientVersion":"2.20260312.06.00","hl":"en","gl":"US"}},"continuation":"$contToken"}"""
+                        val contResp = client.newCall(browseRequest(contBody)).execute()
+                        val contRaw = contResp.body?.string() ?: break
+                        if (!contResp.isSuccessful || contRaw.length < 50) break
+                        val contRoot = JSONObject(contRaw)
+                        collectChannels(contRoot, results)
+                        contToken = extractContinuationToken(contRoot)
+                        page++
                     }
 
-                    parseOpml(body)
+                    Log.d("BoltPlayer", "Loaded ${results.size} subscriptions ($page continuation pages)")
+                    results
                 }
                 channels = channelList.sortedBy { it.name.lowercase() }
                 isLoading = false
@@ -80,37 +114,37 @@ class SubscriptionsScreen(carContext: CarContext) : Screen(carContext) {
         }
     }
 
-    /**
-     * Parses the OPML XML exported by YouTube's subscription_manager endpoint.
-     * Structure:
-     *   <outline text="YouTube Subscriptions">
-     *     <outline text="Channel Name" xmlUrl="...?channel_id=UCxxxxx" />
-     *   </outline>
-     */
-    private fun parseOpml(xml: String): List<Channel> {
-        val result = mutableListOf<Channel>()
-        try {
-            val parser = Xml.newPullParser()
-            parser.setInput(xml.reader())
-            var eventType = parser.eventType
-            while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG &&
-                    parser.name == "outline") {
-                    val xmlUrl = parser.getAttributeValue(null, "xmlUrl")
-                    val title  = parser.getAttributeValue(null, "text")
-                        ?: parser.getAttributeValue(null, "title")
-                    if (xmlUrl != null && title != null && xmlUrl.contains("channel_id=")) {
-                        val channelId = xmlUrl.substringAfter("channel_id=").substringBefore("&")
-                        result.add(Channel(title, channelId))
-                    }
-                }
-                eventType = parser.next()
+    private fun extractContinuationToken(obj: Any): String? = when (obj) {
+        is JSONObject -> {
+            val token = obj.optJSONObject("continuationItemRenderer")
+                ?.optJSONObject("continuationEndpoint")
+                ?.optJSONObject("continuationCommand")
+                ?.optString("token")?.takeIf { it.isNotBlank() }
+            token ?: obj.keys().asSequence().firstNotNullOfOrNull { key ->
+                extractContinuationToken(obj.get(key))
             }
-        } catch (e: Exception) {
-            Log.e("BoltPlayer", "OPML parse error: $e")
         }
-        Log.d("BoltPlayer", "Parsed ${result.size} subscriptions from OPML")
-        return result
+        is JSONArray -> (0 until obj.length()).asSequence()
+            .firstNotNullOfOrNull { i -> extractContinuationToken(obj.get(i)) }
+        else -> null
+    }
+
+    private fun collectChannels(obj: Any, out: MutableList<Channel>) {
+        when (obj) {
+            is JSONObject -> {
+                // Two common renderer types for subscribed channels
+                (obj.optJSONObject("gridChannelRenderer")
+                    ?: obj.optJSONObject("channelRenderer"))?.let { cr ->
+                    val id = cr.optString("channelId").takeIf { it.isNotBlank() }
+                    val name = cr.optJSONObject("title")?.optString("simpleText")
+                        ?: cr.optJSONObject("displayName")?.optString("simpleText")
+                        ?: cr.optJSONArray("title")?.optJSONObject(0)?.optString("text")
+                    if (id != null && name != null) out.add(Channel(name, id))
+                }
+                obj.keys().forEach { key -> collectChannels(obj.get(key), out) }
+            }
+            is JSONArray -> for (i in 0 until obj.length()) collectChannels(obj.get(i), out)
+        }
     }
 
     override fun onGetTemplate(): Template {

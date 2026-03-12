@@ -10,6 +10,8 @@ import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 
 class NewPipeDownloader private constructor(private val client: OkHttpClient) : Downloader() {
 
+    @Volatile var cookies: String = ""
+
     companion object {
         @Volatile private var instance: NewPipeDownloader? = null
 
@@ -32,8 +34,14 @@ class NewPipeDownloader private constructor(private val client: OkHttpClient) : 
         val req = OkHttpRequest.Builder()
             .url(request.url())
             .method(method, body)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
             .apply {
+                val c = cookies
+                if (c.isNotBlank()) {
+                    header("Cookie", c)
+                } else {
+                    android.util.Log.w("BoltPlayer", "NewPipeDownloader: NO COOKIES for ${request.url().take(60)}")
+                }
                 request.headers().forEach { (name, values) ->
                     values.forEach { addHeader(name, it) }
                 }

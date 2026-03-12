@@ -27,7 +27,7 @@ class MoviesBrowseScreen(carContext: CarContext) : Screen(carContext) {
         listBuilder.addItem(libraryRow(
             "My Purchases / Rentals",
             if (isSignedIn) "Movies & shows you've bought or rented" else "Sign in to view your purchases",
-            "https://m.youtube.com/feed/purchases"
+            "https://m.youtube.com/paid_memberships?ybp=ggECIAE%3D"
         ))
         if (isSignedIn) {
             listBuilder.addItem(libraryRow(
