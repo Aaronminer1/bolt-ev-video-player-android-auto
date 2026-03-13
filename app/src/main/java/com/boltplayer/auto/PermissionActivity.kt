@@ -1,10 +1,13 @@
 package com.boltplayer.auto
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.app.Activity
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
@@ -46,6 +49,11 @@ class PermissionActivity : Activity() {
             setOnClickListener { requestStoragePermission() }
         }
 
+        val overlayButton = Button(this).apply {
+            text = "Grant Browser Permission (Overlay)"
+            setOnClickListener { requestOverlayPermission() }
+        }
+
         val youtubeButton = Button(this).apply {
             text = "YouTube Search"
             setOnClickListener {
@@ -66,6 +74,7 @@ class PermissionActivity : Activity() {
         layout.addView(titleView)
         layout.addView(statusText)
         layout.addView(grantButton)
+        layout.addView(overlayButton)
         layout.addView(youtubeButton)
         layout.addView(infoText)
 
@@ -76,6 +85,16 @@ class PermissionActivity : Activity() {
     override fun onResume() {
         super.onResume()
         updateStatus()
+    }
+
+    private fun requestOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+        }
     }
 
     private fun requestStoragePermission() {

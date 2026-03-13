@@ -63,6 +63,22 @@ class FileBrowserScreen(carContext: CarContext) : Screen(carContext) {
                 .build()
         )
 
+        // Native browser
+        listBuilder.addItem(
+            Row.Builder()
+                .setTitle("Browser")
+                .addText("Browse the web directly on the car screen.")
+                .setImage(
+                    CarIcon.Builder(
+                        IconCompat.createWithResource(carContext, R.drawable.ic_play)
+                    ).build()
+                )
+                .setOnClickListener {
+                    screenManager.push(WebBrowserScreen(carContext))
+                }
+                .build()
+        )
+
         if (videos.isEmpty()) {
             listBuilder.setNoItemsMessage(
                 "No local videos found. Grant storage permission on your phone and add videos."
