@@ -15,6 +15,9 @@ import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.core.graphics.drawable.IconCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import kotlinx.coroutines.*
 
 class FileBrowserScreen(carContext: CarContext) : Screen(carContext) {
 
@@ -26,8 +29,33 @@ class FileBrowserScreen(carContext: CarContext) : Screen(carContext) {
         val size: Long
     )
 
+    private val scope = MainScope()
+    private var videos: List<VideoItem> = emptyList()
+    private var isLoading = true
+
+    init {
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onCreate(owner: LifecycleOwner) {
+                scope.launch {
+                    videos = withContext(Dispatchers.IO) { scanVideos() }
+                    isLoading = false
+                    invalidate()
+                }
+            }
+            override fun onDestroy(owner: LifecycleOwner) {
+                scope.cancel()
+            }
+        })
+    }
+
     override fun onGetTemplate(): Template {
-        val videos = scanVideos()
+        if (isLoading) {
+            return ListTemplate.Builder()
+                .setTitle("Bolt Player")
+                .setHeaderAction(Action.APP_ICON)
+                .setLoading(true)
+                .build()
+        }
 
         val listBuilder = ItemList.Builder()
 
@@ -89,11 +117,10 @@ class FileBrowserScreen(carContext: CarContext) : Screen(carContext) {
             ).build()
 
             videos.take(99).forEach { video ->
-                val icon = loadThumbnail(video.id, video.uri) ?: fallbackIcon
                 val row = Row.Builder()
                     .setTitle(video.title)
                     .addText("${formatDuration(video.duration)}  •  ${formatSize(video.size)}")
-                    .setImage(icon)
+                    .setImage(fallbackIcon)
                     .setOnClickListener {
                         val exo = androidx.media3.exoplayer.ExoPlayer
                             .Builder(carContext.applicationContext).build()

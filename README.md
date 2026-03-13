@@ -1,5 +1,10 @@
 # Bolt EV Video Player — Android Auto
 
+> ## ⚠️ SAFETY WARNING
+> **DO NOT USE WHILE DRIVING.** This application is intended for use **only when the vehicle is safely parked**. Watching video while operating a motor vehicle is illegal in most jurisdictions and extremely dangerous. **Use at your own risk.** See [DISCLAIMER.md](DISCLAIMER.md) for full terms.
+
+> **EXPERIMENTAL SOFTWARE** — This is an unofficial, personal-use sideloaded app. It is not affiliated with or approved by Google, YouTube, or General Motors. It may crash or stop working at any time.
+
 A YouTube streaming app built for the **Chevy Bolt EV** head unit via Android Auto. Watch YouTube, browse your subscriptions, access purchased content, and control playback — all from your car's display.
 
 ---
@@ -237,4 +242,20 @@ BoltPlayerCarAppService
 
 ## License
 
-Personal use. NewPipe Extractor is licensed under GPL-3.0.
+This project is licensed under the **GNU General Public License v3.0** — see [LICENSE](LICENSE) for the full text.
+
+This license applies because this project includes [NewPipe Extractor](https://github.com/TeamNewPipe/NewPipeExtractor) (GPL-3.0), which requires the combined work to also be distributed under GPL-3.0.
+
+**Key points of GPL-3.0:**
+- You may freely use, copy, modify, and distribute this software
+- If you distribute modified versions, you must also release them under GPL-3.0 and provide source code
+- There is **no warranty** — see sections 15 and 16 of the license
+- The authors bear **no liability** for damages arising from use
+
+---
+
+## Disclaimer
+
+See [DISCLAIMER.md](DISCLAIMER.md) for the full safety warning, limitation of liability, and no-warranty statement.
+
+**Summary:** This is experimental software provided as-is. The authors are not responsible for any injury, accident, damage, or legal consequence arising from its use. Do not use while driving.

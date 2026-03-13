@@ -72,6 +72,37 @@
     }
     .step-text { font-size: 14px; color: #ccc; line-height: 1.5; padding-top: 3px; }
     .step-text em { color: #00c853; font-style: normal; font-weight: 600; }
+    .warning {
+      margin-top: 40px;
+      background: #1a0a00;
+      border: 1px solid #ff6600;
+      border-radius: 12px;
+      padding: 18px 20px;
+      max-width: 400px;
+      width: 100%;
+      text-align: left;
+    }
+    .warning-title {
+      color: #ff6600;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+    .warning-text {
+      font-size: 13px;
+      color: #cc9966;
+      line-height: 1.6;
+    }
+    .disclaimer {
+      margin-top: 32px;
+      font-size: 11px;
+      color: #444;
+      max-width: 400px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .disclaimer a { color: #555; }
   </style>
 </head>
 <body>
@@ -117,5 +148,27 @@
         '📱 Open this page on your <strong>Android phone</strong> to install.';
     }
   </script>
+
+  <div class="warning">
+    <div class="warning-title">⚠️ Safety Warning</div>
+    <div class="warning-text">
+      <strong style="color:#ff8833">DO NOT use while driving.</strong>
+      This app is for use only when the vehicle is safely parked.
+      Watching video while operating a motor vehicle is illegal in most
+      jurisdictions and extremely dangerous.
+    </div>
+  </div>
+
+  <p class="disclaimer">
+    Experimental software &mdash; provided &ldquo;as is&rdquo; with no warranty.
+    The authors bear no liability for any injury, accident, damage, or legal
+    consequence arising from use of this software.
+    By installing you accept the
+    <a href="https://github.com/Aaronminer1/bolt-ev-video-player-android-auto/blob/main/DISCLAIMER.md">full disclaimer</a>
+    and agree to use at your own risk.<br><br>
+    Licensed under <a href="https://github.com/Aaronminer1/bolt-ev-video-player-android-auto/blob/main/LICENSE">GPL-3.0</a>.
+    Not affiliated with Google, YouTube, or General Motors.
+  </p>
+
 </body>
 </html>
