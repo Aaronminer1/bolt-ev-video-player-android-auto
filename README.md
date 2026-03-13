@@ -4,11 +4,9 @@ A YouTube streaming app built for the **Chevy Bolt EV** head unit via Android Au
 
 ## ⬇️ Install
 
-**On your Android phone, tap this button:**
+**On your Android phone, open this page and tap Install:**
 
-[![Install APK](https://img.shields.io/badge/⬇%20Download%20%26%20Install-APK-brightgreen?style=for-the-badge)](https://github.com/Aaronminer1/bolt-ev-video-player-android-auto/releases/latest/download/bolt-player.apk)
-
-or open this page on your phone: **https://aaronminer1.github.io/bolt-ev-video-player-android-auto**
+**➡ https://aaronminer1.github.io/bolt-ev-video-player-android-auto**
 
 > First install only: Android will ask you to allow installs from your browser — tap **Allow**, then **Install**.
 
@@ -39,15 +37,11 @@ or open this page on your phone: **https://aaronminer1.github.io/bolt-ev-video-p
 
 ## Installation
 
-**Option 1 — Direct install (easiest):**
 1. On your Android phone, open Chrome and go to:  
-   `https://aaronminer1.github.io/bolt-ev-video-player-android-auto`
+   **https://aaronminer1.github.io/bolt-ev-video-player-android-auto**
 2. Tap **Install**
 3. If prompted, tap **Settings → Allow from this source → back → Install**
 4. Open Android Auto and grant the overlay permission
-
-**Option 2 — Direct APK link:**  
-https://github.com/Aaronminer1/bolt-ev-video-player-android-auto/releases/latest/download/bolt-player.apk
 
 ---
 
