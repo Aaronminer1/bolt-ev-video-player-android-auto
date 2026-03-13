@@ -62,16 +62,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cat > /tmp/release-notes.md << 'EOF'
+          ## One-tap install
+
+          **Open this on your Android phone:**
+          https://aaronminer1.github.io/bolt-ev-video-player-android-auto
+
+          Or tap the **bolt-player.apk** asset below to download directly, then tap the download notification to install.
+          EOF
+          echo "" >> /tmp/release-notes.md
+          echo "Built from commit: ${{ github.sha }}" >> /tmp/release-notes.md
           gh release create latest \
-            --title "Bolt Player – Latest Build" \
-            --notes "## ⬇️ One-tap install
-
-**Open this on your Android phone:**
-https://aaronminer1.github.io/bolt-ev-video-player-android-auto
-
-Or tap the **bolt-player.apk** asset below to download directly, then tap the download notification to install.
-
-> Built from commit: ${{ github.sha }}" \
+            --title "Bolt Player - Latest Build" \
+            --notes-file /tmp/release-notes.md \
             --prerelease \
             app/build/outputs/apk/debug/bolt-player.apk
 
