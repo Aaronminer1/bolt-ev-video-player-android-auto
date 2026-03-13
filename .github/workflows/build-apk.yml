@@ -5,6 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -61,15 +66,32 @@ jobs:
         run: |
           gh release create latest \
             --title "Bolt Player – Latest Build" \
-            --notes "Automatically built from the latest commit on \`main\`.
+            --notes "## ⬇️ One-tap install
 
-## Install on your phone
+**Open this on your Android phone:**
+https://aaronminer1.github.io/bolt-ev-video-player-android-auto
 
-1. Download **bolt-player.apk** below
-2. On your Android phone: **Settings → Apps → Install unknown apps** → allow your browser/Files app
-3. Open the downloaded APK and tap **Install**
-4. Open Android Auto and grant the overlay permission when prompted
+Or tap the **bolt-player.apk** asset below to download directly, then tap the download notification to install.
 
 > Built from commit: ${{ github.sha }}" \
             --prerelease \
             app/build/outputs/apk/debug/bolt-player.apk
+
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
