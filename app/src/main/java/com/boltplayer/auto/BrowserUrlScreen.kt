@@ -29,7 +29,7 @@ class BrowserUrlScreen(carContext: CarContext) : Screen(carContext) {
             }
         )
             .setShowKeyboardByDefault(true)
-            .setSearchHint("Enter URL or search…")
+            .setSearchHint("Enter URL or search — tap ⌕ to go")
             .build()
     }
 }

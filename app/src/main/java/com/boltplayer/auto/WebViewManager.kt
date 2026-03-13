@@ -47,6 +47,18 @@ object WebViewManager {
     /** Set by WebBrowserScreen to be notified when a page input field is focused. */
     var onInputFocused: ((currentValue: String) -> Unit)? = null
 
+    /** Called when the injected nav bar's URL button is tapped. */
+    var onUrlRequested: (() -> Unit)? = null
+
+    /** Called when the injected nav bar's Exit button is tapped. */
+    var onExitRequested: (() -> Unit)? = null
+
+    /** Current page URL — updated on every onPageStarted. */
+    var currentUrl: String = "https://www.google.com"
+
+    /** Called on the main thread whenever the browser navigates to a new URL. */
+    var onUrlChanged: ((String) -> Unit)? = null
+
     fun init(context: Context, surface: Surface, width: Int, height: Int, density: Int) {
         release()
         try {
@@ -167,6 +179,26 @@ class WebPresentation(
                 WebViewManager.onInputFocused?.invoke(currentValue)
             }
         }
+
+        @JavascriptInterface
+        fun goBack() {
+            Handler(Looper.getMainLooper()).post { WebViewManager.goBack() }
+        }
+
+        @JavascriptInterface
+        fun reloadPage() {
+            Handler(Looper.getMainLooper()).post { WebViewManager.reload() }
+        }
+
+        @JavascriptInterface
+        fun openUrlDialog() {
+            Handler(Looper.getMainLooper()).post { WebViewManager.onUrlRequested?.invoke() }
+        }
+
+        @JavascriptInterface
+        fun exitBrowser() {
+            Handler(Looper.getMainLooper()).post { WebViewManager.onExitRequested?.invoke() }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -234,29 +266,19 @@ class WebPresentation(
 
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                // Track current URL and notify WebBrowserScreen so it can refresh the ActionStrip
+                WebViewManager.currentUrl = url
+                Handler(Looper.getMainLooper()).post { WebViewManager.onUrlChanged?.invoke(url) }
                 // Inject early — before page JS runs — to spoof a real Chrome browser.
-                // YouTube (and others) check window.chrome, navigator.userAgent, and
-                // navigator.webdriver in JS, not just the HTTP User-Agent header.
                 view.evaluateJavascript(CHROME_SPOOF_JS, null)
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                // Re-inject spoof in case the page replaced window.chrome during load
+                // Re-inject Chrome spoof in case the page replaced window.chrome during load
                 view.evaluateJavascript(CHROME_SPOOF_JS, null)
-                // Intercept focus on any input/textarea and report back to the car side
-                view.evaluateJavascript("""
-                    (function() {
-                        if (window.__boltInputListenerInstalled) return;
-                        window.__boltInputListenerInstalled = true;
-                        document.addEventListener('focusin', function(e) {
-                            var t = e.target;
-                            if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') {
-                                try { Android.onInputFocus(t.value || ''); } catch(err) {}
-                            }
-                        });
-                    })();
-                """.trimIndent(), null)
+                // Inject input-focus listener + bottom nav bar
+                view.evaluateJavascript(PAGE_INJECT_JS, null)
             }
         }
         wv.webChromeClient = object : WebChromeClient() {
@@ -289,6 +311,21 @@ class WebPresentation(
     companion object {
         fun youtubeEmbedUrl(videoId: String) =
             "https://www.youtube.com/embed/$videoId?autoplay=1&fs=1&rel=0&playsinline=0"
+
+        /** Injected every page load — installs the input-focus listener for the car keyboard. */
+        val PAGE_INJECT_JS = """
+            (function() {
+                if (!window.__boltInputListenerInstalled) {
+                    window.__boltInputListenerInstalled = true;
+                    document.addEventListener('focusin', function(e) {
+                        var t = e.target;
+                        if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') {
+                            try { Android.onInputFocus(t.value || ''); } catch(err) {}
+                        }
+                    });
+                }
+            })();
+        """.trimIndent()
 
         /**
          * Injected at onPageStarted + onPageFinished to make the WebView look like

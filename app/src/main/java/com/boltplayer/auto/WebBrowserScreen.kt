@@ -35,10 +35,21 @@ class WebBrowserScreen(carContext: CarContext) : Screen(carContext), SurfaceCall
         WebViewManager.onInputFocused = { currentValue ->
             screenManager.push(FormInputScreen(carContext, currentValue))
         }
+        WebViewManager.onUrlRequested = {
+            screenManager.push(BrowserUrlScreen(carContext))
+        }
+        WebViewManager.onExitRequested = {
+            screenManager.pop()
+        }
+        // Refresh the ActionStrip URL button whenever the browser navigates
+        WebViewManager.onUrlChanged = { invalidate() }
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
                 WebViewManager.onInputFocused = null
+                WebViewManager.onUrlRequested = null
+                WebViewManager.onExitRequested = null
+                WebViewManager.onUrlChanged = null
                 WebViewManager.pendingUrl = null
                 WebViewManager.release()
             }
@@ -73,35 +84,40 @@ class WebBrowserScreen(carContext: CarContext) : Screen(carContext), SurfaceCall
     // ── Template ─────────────────────────────────────────────────────────────
 
     override fun onGetTemplate(): Template {
+        // Build a Chrome-style top navigation bar using ActionStrip:
+        //   ◀ Back  |  ↻ Reload  |  [current domain]  |  ✕ Exit
+        val displayUrl = try {
+            android.net.Uri.parse(WebViewManager.currentUrl)
+                .host
+                ?.removePrefix("www.")
+                ?.take(24)
+                ?: "Go to URL"
+        } catch (e: Exception) { "Go to URL" }
+
+        val backAction = Action.Builder()
+            .setTitle("\u25C4 Back")
+            .setOnClickListener { WebViewManager.goBack() }
+            .build()
+        val reloadAction = Action.Builder()
+            .setTitle("\u21BB Reload")
+            .setOnClickListener { WebViewManager.reload() }
+            .build()
+        val urlAction = Action.Builder()
+            .setTitle(displayUrl)
+            .setOnClickListener { screenManager.push(BrowserUrlScreen(carContext)) }
+            .build()
+        val exitAction = Action.Builder()
+            .setTitle("\u2715 Exit")
+            .setOnClickListener { screenManager.pop() }
+            .build()
+
         return NavigationTemplate.Builder()
             .setActionStrip(
                 ActionStrip.Builder()
-                    .addAction(
-                        Action.Builder()
-                            .setTitle("◀ Back")
-                            .setOnClickListener { WebViewManager.goBack() }
-                            .build()
-                    )
-                    .addAction(
-                        Action.Builder()
-                            .setTitle("⟳ Reload")
-                            .setOnClickListener { WebViewManager.reload() }
-                            .build()
-                    )
-                    .addAction(
-                        Action.Builder()
-                            .setTitle("URL")
-                            .setOnClickListener {
-                                screenManager.push(BrowserUrlScreen(carContext))
-                            }
-                            .build()
-                    )
-                    .addAction(
-                        Action.Builder()
-                            .setTitle("Exit")
-                            .setOnClickListener { screenManager.pop() }
-                            .build()
-                    )
+                    .addAction(backAction)
+                    .addAction(reloadAction)
+                    .addAction(urlAction)
+                    .addAction(exitAction)
                     .build()
             )
             .build()

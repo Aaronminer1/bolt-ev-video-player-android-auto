@@ -34,7 +34,7 @@ class FormInputScreen(
         )
             .setInitialSearchText(currentValue)
             .setShowKeyboardByDefault(true)
-            .setSearchHint("Type to fill field…")
+            .setSearchHint("Type text — tap ⌕ to confirm (= Enter)")
             .build()
     }
 
