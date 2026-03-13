@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
@@ -60,6 +62,18 @@
             android:launchMode="singleTop"
             android:label="YouTube"
             android:theme="@android:style/Theme.DeviceDefault.Light" />
+
+        <!-- Screen mirroring: phone-side permission dialog -->
+        <activity
+            android:name=".MirrorActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Screen mirroring: foreground service holding MediaProjection (required Android 14+) -->
+        <service
+            android:name=".ScreenMirrorService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <meta-data
             android:name="com.google.android.gms.car.application"

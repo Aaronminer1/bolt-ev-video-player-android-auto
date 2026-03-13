@@ -47,6 +47,22 @@ class FileBrowserScreen(carContext: CarContext) : Screen(carContext) {
                 .build()
         )
 
+        // Mirror phone screen
+        listBuilder.addItem(
+            Row.Builder()
+                .setTitle("Mirror Phone Screen")
+                .addText("Cast your phone display to the car. Note: DRM apps (Netflix, etc.) will appear black.")
+                .setImage(
+                    CarIcon.Builder(
+                        IconCompat.createWithResource(carContext, R.drawable.ic_play)
+                    ).build()
+                )
+                .setOnClickListener {
+                    screenManager.push(ScreenMirrorScreen(carContext))
+                }
+                .build()
+        )
+
         if (videos.isEmpty()) {
             listBuilder.setNoItemsMessage(
                 "No local videos found. Grant storage permission on your phone and add videos."
