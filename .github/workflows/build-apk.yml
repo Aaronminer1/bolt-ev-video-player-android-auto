@@ -75,7 +75,7 @@ jobs:
           gh release create latest \
             --title "Bolt Player - Latest Build" \
             --notes-file /tmp/release-notes.md \
-            --prerelease \
+            --latest \
             app/build/outputs/apk/debug/bolt-player.apk
 
   deploy-pages:
