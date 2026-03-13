@@ -149,7 +149,7 @@ Licensed under GPL-3.0. Source code available at the GitHub link above.
 
     override fun onResume() {
         super.onResume()
-        updateStatus()
+        if (::statusText.isInitialized) updateStatus()
     }
 
     private fun requestOverlayPermission() {
